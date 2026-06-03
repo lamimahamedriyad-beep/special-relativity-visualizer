@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Relativistic — Special Relativity Visualizer</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #04060f;
+    --surface: #090d1c;
+    --card: #0d1226;
+    --border: #1a2240;
+    --accent: #00e5ff;
+    --accent2: #ff4d6d;
+    --accent3: #b8ff57;
+    --text: #e8eeff;
+    --muted: #5a6a8a;
+    --glow: rgba(0,229,255,0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* STAR FIELD */
+  #starfield {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  }
+
+  /* MAIN LAYOUT */
+  .shell {
+    position: relative; z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* HEADER */
+  header {
+    padding: 48px 0 36px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 48px;
+  }
+
+  .header-badge {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 4px 12px;
+    margin-bottom: 16px;
+    animation: pulse-border 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-border {
+    0%,100% { box-shadow: 0 0 0 rgba(0,229,255,0); }
+    50% { box-shadow: 0 0 12px rgba(0,229,255,0.3); }
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2.4rem, 5vw, 4rem);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: #fff;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    max-width: 540px;
+    line-height: 1.7;
+  }
+
+  /* VELOCITY MASTER CONTROL */
+  .master-control {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 28px 32px;
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .master-control::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  .mc-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+
+  .velocity-display {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .v-big {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2.8rem, 6vw, 4.5rem);
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+    transition: color 0.3s;
+  }
+
+  .v-unit {
+    font-size: 14px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+
+  .gamma-display {
+    font-size: 13px;
+    color: var(--muted);
+    margin-left: auto;
+    text-align: right;
+  }
+
+  .gamma-val {
+    display: block;
+    font-family: 'Syne', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent3);
+  }
+
+  .velocity-slider-wrap {
+    position: relative;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: var(--border);
+    border-radius: 0;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 16px var(--accent);
+    transition: transform 0.1s;
+  }
+
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+  .slider-ticks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 10px;
+    letter-spacing: 0.05em;
+  }
+
+  /* WARNING BAR */
+  .rel-warning {
+    margin-top: 16px;
+    padding: 8px 16px;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    border-left: 2px solid var(--accent2);
+    color: var(--accent2);
+    background: rgba(255,77,109,0.06);
+    display: none;
+  }
+
+  /* GRID */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 680px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 760px) { .grid-3 { grid-template-columns: 1fr; } }
+
+  /* CARDS */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 24px;
+    position: relative;
+    transition: border-color 0.3s;
+  }
+
+  .card:hover { border-color: rgba(0,229,255,0.35); }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title::before {
+    content: '';
+    display: block;
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+
+  /* STAT ROWS */
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(26,34,64,0.8);
+    font-size: 12px;
+  }
+
+  .stat-row:last-child { border-bottom: none; }
+
+  .stat-label { color: var(--muted); }
+
+  .stat-value {
+    font-weight: 500;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    transition: color 0.3s;
+  }
+
+  .stat-value.highlight { color: var(--accent); }
+  .stat-value.warn { color: var(--accent2); }
+  .stat-value.good { color: var(--accent3); }
+
+  /* CANVAS CARDS */
+  .canvas-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  /* SECTION HEADERS */
+  .section-head {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 44px 0 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-head::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* MINKOWSKI DIAGRAM */
+  #minkowski-canvas { height: 360px; }
+
+  /* TWIN PARADOX */
+  .twin-controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .twin-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 140px;
+  }
+
+  .twin-input-group label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .twin-input-group input[type=number] {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    padding: 8px 12px;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+
+  .twin-input-group input:focus { border-color: var(--accent); }
+
+  .btn {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 10px 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    align-self: flex-end;
+  }
+
+  .btn:hover {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  .twin-result {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  .twin-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px;
+    text-align: center;
+  }
+
+  .twin-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .twin-age {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .twin-age.stay { color: var(--accent2); }
+  .twin-age.travel { color: var(--accent3); }
+
+  .twin-unit { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* LORENTZ VIZ */
+  #lorentz-canvas { height: 280px; }
+
+  /* FORMULA STRIP */
+  .formula-strip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 16px 20px;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 2;
+    margin-bottom: 20px;
+  }
+
+  .formula-strip em {
+    font-style: normal;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 0;
+    margin-top: 60px;
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: gap;
+    gap: 12px;
+  }
+
+  .footer-links { display: flex; gap: 20px; }
+  .footer-links a { color: var(--muted); text-decoration: none; transition: color 0.2s; }
+  .footer-links a:hover { color: var(--accent); }
+
+  /* LIGHT CONE canvas */
+  #lightcone-canvas { height: 340px; }
+
+  /* MASS-ENERGY */
+  .me-inputs { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+
+  /* Animate value changes */
+  @keyframes flash-value {
+    0% { color: var(--accent); }
+    100% { }
+  }
+
+  .flash { animation: flash-value 0.4s ease-out; }
+
+  /* TICK LINE */
+  .tick { display: inline-block; width: 1ch; color: var(--accent3); }
+</style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+
+<div class="shell">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-badge">Physics Engine v1.0</div>
+    <h1>RELATIV<span>ISTIC</span></h1>
+    <p class="subtitle">An interactive visualizer for special relativity — time dilation, length contraction, Lorentz transforms, Minkowski diagrams & the twin paradox. All in real time.</p>
+  </header>
+
+  <!-- MASTER VELOCITY CONTROL -->
+  <div class="master-control">
+    <div class="mc-label">// Master Velocity Control — drag to explore spacetime</div>
+    <div class="velocity-display">
+      <div class="v-big" id="v-display">0.00</div>
+      <div class="v-unit">× c</div>
+      <div class="gamma-display">
+        Lorentz Factor γ<br>
+        <span class="gamma-val" id="gamma-display">1.000</span>
+      </div>
+    </div>
+    <div class="velocity-slider-wrap">
+      <input type="range" id="master-slider" min="0" max="999" value="0" step="1" />
+      <div class="slider-ticks">
+        <span>0</span><span>0.2c</span><span>0.4c</span><span>0.6c</span><span>0.8c</span><span>0.99c</span>
+      </div>
+    </div>
+    <div class="rel-warning" id="rel-warning">
+      ⚠ Highly relativistic regime — effects become extreme. Approaching c asymptotically.
+    </div>
+  </div>
+
+  <!-- CORE EFFECTS -->
+  <div class="section-head">Core Relativistic Effects</div>
+
+  <div class="grid-3">
+    <!-- TIME DILATION -->
+    <div class="card">
+      <div class="card-title">Time Dilation</div>
+      <div class="formula-strip" style="margin-bottom:14px;font-size:11px;">
+        <em>Δt' = γ · Δt</em>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Proper time (rest)</span>
+        <span class="stat-value">1.000 s</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Dilated time</span>
+        <span class="stat-value highlight" id="td-dilated">1.000 s</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Time ratio t'/t</span>
+        <span class="stat-value highlight" id="td-ratio">1.000×</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Clock runs at</span>
+        <span class="stat-value good" id="td-rate">100.00%</span>
+      </div>
+    </div>
+
+    <!-- LENGTH CONTRACTION -->
+    <div class="card">
+      <div class="card-title">Length Contraction</div>
+      <div class="formula-strip" style="margin-bottom:14px;font-size:11px;">
+        <em>L' = L₀ / γ</em>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Rest length L₀</span>
+        <span class="stat-value">100.00 m</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Contracted L'</span>
+        <span class="stat-value highlight" id="lc-contracted">100.00 m</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Contraction ratio</span>
+        <span class="stat-value highlight" id="lc-ratio">1.000×</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Contracted to</span>
+        <span class="stat-value good" id="lc-percent">100.00%</span>
+      </div>
+    </div>
+
+    <!-- RELATIVISTIC MASS / MOMENTUM -->
+    <div class="card">
+      <div class="card-title">Relativistic Momentum</div>
+      <div class="formula-strip" style="margin-bottom:14px;font-size:11px;">
+        <em>p = γm₀v</em>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Rest mass m₀</span>
+        <span class="stat-value">1.000 kg</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Momentum p</span>
+        <span class="stat-value highlight" id="rm-momentum">0.000 kg·m/s×10⁸</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Kinetic energy</span>
+        <span class="stat-value highlight" id="rm-ke">0.000 J×10¹⁶</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Total energy E</span>
+        <span class="stat-value warn" id="rm-total">8.988 J×10¹⁶</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- LENGTH CONTRACTION VISUAL -->
+  <div class="canvas-card">
+    <div class="card-title" style="margin-bottom:14px;">Length Contraction — Visual Comparison</div>
+    <canvas id="length-canvas" height="110"></canvas>
+  </div>
+
+  <!-- MINKOWSKI DIAGRAM -->
+  <div class="section-head">Minkowski Spacetime Diagram</div>
+  <div class="canvas-card">
+    <div class="card-title" style="margin-bottom:4px;">ct vs x — Worldlines & Light Cone</div>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:14px;">Blue: stationary worldline · Orange: moving frame worldline · Yellow: light cone (45°) · Red dashed: simultaneity lines</p>
+    <canvas id="minkowski-canvas"></canvas>
+  </div>
+
+  <!-- LIGHT CONE -->
+  <div class="section-head">Light Cone & Causality</div>
+  <div class="canvas-card">
+    <div class="card-title" style="margin-bottom:4px;">Spacetime Causality Structure</div>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:14px;">Events inside the cone are causally connected. Spacelike-separated events cannot influence each other.</p>
+    <canvas id="lightcone-canvas"></canvas>
+  </div>
+
+  <!-- TWIN PARADOX -->
+  <div class="section-head">Twin Paradox Calculator</div>
+  <div class="card">
+    <div class="card-title">Differential Aging — Traveling Twin vs. Earth Twin</div>
+    <div class="formula-strip">
+      Traveling twin ages: <em>τ = T · √(1 − v²/c²)</em> &nbsp;|&nbsp; Earth twin ages: <em>T</em>
+    </div>
+    <div class="twin-controls">
+      <div class="twin-input-group">
+        <label>Travel velocity (× c)</label>
+        <input type="number" id="twin-v" min="0.01" max="0.9999" step="0.01" value="0.8" />
+      </div>
+      <div class="twin-input-group">
+        <label>Earth time elapsed (years)</label>
+        <input type="number" id="twin-T" min="1" max="10000" step="1" value="20" />
+      </div>
+      <button class="btn" id="twin-calc">Calculate →</button>
+    </div>
+    <div class="twin-result">
+      <div class="twin-box">
+        <div class="twin-name">🌍 Earth Twin</div>
+        <div class="twin-age stay" id="twin-earth-age">20.00</div>
+        <div class="twin-unit">years older</div>
+      </div>
+      <div class="twin-box">
+        <div class="twin-name">🚀 Traveling Twin</div>
+        <div class="twin-age travel" id="twin-travel-age">12.00</div>
+        <div class="twin-unit">years older</div>
+      </div>
+    </div>
+    <div style="margin-top:14px;font-size:12px;color:var(--muted);" id="twin-summary">
+      The traveling twin returns <span id="twin-diff" style="color:var(--accent3);">8.00</span> years younger than their sibling.
+    </div>
+  </div>
+
+  <!-- LORENTZ TRANSFORM VISUALIZER -->
+  <div class="section-head">Lorentz Transformation</div>
+  <div class="canvas-card">
+    <div class="card-title" style="margin-bottom:4px;">Frame S → Frame S' — Axis Shear Under Boost</div>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:14px;">White grid: rest frame S · Colored grid: boosted frame S'. Both x and ct axes rotate toward the lightcone as v → c.</p>
+    <canvas id="lorentz-canvas"></canvas>
+  </div>
+
+  <!-- FORMULAS REFERENCE -->
+  <div class="section-head">Key Equations</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Lorentz Factor</div>
+      <div style="font-size:13px;line-height:2.2;color:var(--muted);">
+        γ = 1 / √(1 − v²/c²)<br>
+        <span style="color:var(--muted);font-size:11px;">→ Governs ALL relativistic effects</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Spacetime Interval</div>
+      <div style="font-size:13px;line-height:2.2;color:var(--muted);">
+        s² = c²Δt² − Δx²<br>
+        <span style="color:var(--muted);font-size:11px;">→ Invariant across all inertial frames</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Lorentz Transform</div>
+      <div style="font-size:13px;line-height:2.2;color:var(--muted);">
+        x' = γ(x − vt)<br>
+        t' = γ(t − vx/c²)
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Mass-Energy Equivalence</div>
+      <div style="font-size:13px;line-height:2.2;color:var(--muted);">
+        E = γm₀c²<br>
+        E₀ = m₀c² &nbsp;(rest energy)
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>Built with pure HTML/CSS/JS · No dependencies · Open Source</span>
+    <div class="footer-links">
+      <a href="#">GitHub</a>
+      <a href="#">Docs</a>
+      <a href="#">Einstein, 1905</a>
+    </div>
+  </footer>
+
+</div><!-- end shell -->
+
+<script>
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
+const C = 3e8; // m/s
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let beta = 0; // v/c
+
+function gamma(b) {
+  if (b >= 1) b = 0.9999999;
+  return 1 / Math.sqrt(1 - b * b);
+}
+
+// ─── STARFIELD ───────────────────────────────────────────────────────────────
+(function() {
+  const cv = document.getElementById('starfield');
+  const cx = cv.getContext('2d');
+  let W, H, stars;
+
+  function init() {
+    W = cv.width = window.innerWidth;
+    H = cv.height = window.innerHeight;
+    stars = Array.from({ length: 180 }, () => ({
+      x: Math.random() * W, y: Math.random() * H,
+      r: Math.random() * 1.2 + 0.2,
+      a: Math.random(),
+      da: (Math.random() - 0.5) * 0.003
+    }));
+  }
+
+  function draw() {
+    cx.clearRect(0, 0, W, H);
+    stars.forEach(s => {
+      s.a = Math.max(0.05, Math.min(1, s.a + s.da));
+      if (s.a <= 0.05 || s.a >= 1) s.da *= -1;
+      cx.beginPath();
+      cx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      cx.fillStyle = `rgba(180,200,255,${s.a * 0.5})`;
+      cx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+
+  init();
+  draw();
+  window.addEventListener('resize', init);
+})();
+
+// ─── MASTER SLIDER ───────────────────────────────────────────────────────────
+const slider = document.getElementById('master-slider');
+
+slider.addEventListener('input', () => {
+  const raw = parseInt(slider.value); // 0–999
+  beta = raw === 0 ? 0 : (raw / 1000) * 0.9999;
+  updateAll();
+});
+
+function updateAll() {
+  const b = beta;
+  const g = gamma(b);
+
+  // display
+  document.getElementById('v-display').textContent = b.toFixed(4);
+  document.getElementById('gamma-display').textContent = g.toFixed(4);
+
+  // color the velocity
+  const hue = Math.round(b * 180);
+  document.querySelector('.v-big').style.color =
+    b < 0.5 ? '#00e5ff' : b < 0.9 ? '#b8ff57' : '#ff4d6d';
+
+  // warning
+  document.getElementById('rel-warning').style.display = b > 0.85 ? 'block' : 'none';
+
+  // TIME DILATION
+  document.getElementById('td-dilated').textContent = g.toFixed(4) + ' s';
+  document.getElementById('td-ratio').textContent = g.toFixed(4) + '×';
+  document.getElementById('td-rate').textContent = (100 / g).toFixed(2) + '%';
+
+  // LENGTH CONTRACTION
+  const Lp = 100 / g;
+  document.getElementById('lc-contracted').textContent = Lp.toFixed(4) + ' m';
+  document.getElementById('lc-ratio').textContent = (1 / g).toFixed(4) + '×';
+  document.getElementById('lc-percent').textContent = (Lp).toFixed(2) + '%';
+
+  // MOMENTUM
+  const m0 = 1;
+  const v = b * C;
+  const p = g * m0 * v;
+  const KE = (g - 1) * m0 * C * C;
+  const E = g * m0 * C * C;
+  document.getElementById('rm-momentum').textContent = (p / 1e8).toFixed(4) + ' ×10⁸ kg·m/s';
+  document.getElementById('rm-ke').textContent = (KE / 1e16).toFixed(4) + ' ×10¹⁶ J';
+  document.getElementById('rm-total').textContent = (E / 1e16).toFixed(4) + ' ×10¹⁶ J';
+
+  // CANVASES
+  drawLength(b, g);
+  drawMinkowski(b, g);
+  drawLightCone(b);
+  drawLorentz(b, g);
+}
+
+// ─── LENGTH CONTRACTION CANVAS ──────────────────────────────────────────────
+function drawLength(b, g) {
+  const cv = document.getElementById('length-canvas');
+  const cx = cv.getContext('2d');
+  cv.width = cv.offsetWidth * window.devicePixelRatio || cv.offsetWidth;
+  cv.height = 110 * (window.devicePixelRatio || 1);
+  cx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+  const W = cv.offsetWidth, H = 110;
+
+  cx.clearRect(0, 0, W, H);
+
+  const margin = 40;
+  const maxW = W - margin * 2;
+  const L0w = maxW;
+  const Lpw = maxW / g;
+
+  // REST bar
+  const y1 = 22;
+  cx.fillStyle = 'rgba(0,229,255,0.15)';
+  cx.fillRect(margin, y1, L0w, 18);
+  cx.strokeStyle = '#00e5ff';
+  cx.lineWidth = 1.5;
+  cx.strokeRect(margin, y1, L0w, 18);
+  cx.fillStyle = '#5a6a8a';
+  cx.font = '10px "IBM Plex Mono"';
+  cx.fillText('REST FRAME  L₀ = 100.00 m', margin + 8, y1 + 12);
+
+  // MOVING bar
+  const y2 = 60;
+  const col = b < 0.5 ? '#b8ff57' : b < 0.9 ? '#ffcc00' : '#ff4d6d';
+  cx.fillStyle = col + '33';
+  cx.fillRect(margin, y2, Lpw, 18);
+  cx.strokeStyle = col;
+  cx.lineWidth = 1.5;
+  cx.strokeRect(margin, y2, Lpw, 18);
+  cx.fillStyle = col;
+  cx.font = '10px "IBM Plex Mono"';
+  cx.fillText(`MOVING FRAME  L' = ${(100/g).toFixed(2)} m`, margin + 8, y2 + 12);
+
+  // labels
+  cx.fillStyle = '#5a6a8a';
+  cx.font = '9px "IBM Plex Mono"';
+  cx.fillText('v = ' + (b * 100).toFixed(2) + '% c', margin, H - 6);
+  cx.fillText('γ = ' + g.toFixed(4), W - margin - 70, H - 6);
+}
+
+// ─── MINKOWSKI DIAGRAM ───────────────────────────────────────────────────────
+function drawMinkowski(b, g) {
+  const cv = document.getElementById('minkowski-canvas');
+  const cx = cv.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = cv.offsetWidth * dpr;
+  cv.height = 360 * dpr;
+  cx.scale(dpr, dpr);
+  const W = cv.offsetWidth, H = 360;
+  cx.clearRect(0, 0, W, H);
+
+  const ox = W / 2, oy = H - 40;
+  const scale = Math.min(W, H) * 0.38;
+
+  // GRID
+  cx.strokeStyle = 'rgba(26,34,64,0.9)';
+  cx.lineWidth = 0.5;
+  for (let i = -5; i <= 5; i++) {
+    const x = ox + i * scale / 5;
+    cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, H); cx.stroke();
+    const y = oy - i * scale / 5;
+    cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke();
+  }
+
+  // AXES
+  cx.strokeStyle = 'rgba(90,106,138,0.6)';
+  cx.lineWidth = 1;
+  cx.beginPath(); cx.moveTo(0, oy); cx.lineTo(W, oy); cx.stroke();
+  cx.beginPath(); cx.moveTo(ox, 0); cx.lineTo(ox, H); cx.stroke();
+
+  // Axis labels
+  cx.fillStyle = '#5a6a8a';
+  cx.font = '11px "IBM Plex Mono"';
+  cx.fillText('x →', W - 28, oy - 8);
+  cx.fillText('ct ↑', ox + 8, 18);
+
+  // LIGHT CONE (±45°)
+  cx.strokeStyle = '#ffd700';
+  cx.lineWidth = 1.5;
+  cx.setLineDash([4, 4]);
+  cx.beginPath(); cx.moveTo(ox, oy); cx.lineTo(ox + scale, oy - scale); cx.stroke();
+  cx.beginPath(); cx.moveTo(ox, oy); cx.lineTo(ox - scale, oy - scale); cx.stroke();
+  cx.beginPath(); cx.moveTo(ox, oy); cx.lineTo(ox + scale * 0.5, oy + scale * 0.5); cx.stroke();
+  cx.beginPath(); cx.moveTo(ox, oy); cx.lineTo(ox - scale * 0.5, oy + scale * 0.5); cx.stroke();
+  cx.setLineDash([]);
+
+  // STATIONARY WORLDLINE (vertical = ct axis)
+  cx.strokeStyle = '#00e5ff';
+  cx.lineWidth = 2.5;
+  cx.beginPath(); cx.moveTo(ox, oy); cx.lineTo(ox, oy - scale); cx.stroke();
+  cx.fillStyle = '#00e5ff';
+  cx.font = '10px "IBM Plex Mono"';
+  cx.fillText('S (rest)', ox + 6, oy - scale + 4);
+
+  // MOVING WORLDLINE — angle = atan(β)
+  const angle = Math.atan(b); // in natural units ct vs x
+  const ex = ox + Math.sin(angle) * scale;
+  const ey = oy - Math.cos(angle) * scale;
+  cx.strokeStyle = '#ff7043';
+  cx.lineWidth = 2.5;
+  cx.beginPath(); cx.moveTo(ox, oy); cx.lineTo(ex, ey); cx.stroke();
+  cx.fillStyle = '#ff7043';
+  cx.fillText("S' (v=" + (b * 100).toFixed(0) + "%c)", ex + 6, ey + 4);
+
+  // S' x-axis (simultaneity line) — slope = β in ct vs x
+  // In Minkowski, S' x-axis has slope β (ct = β·x)
+  cx.strokeStyle = '#ff4d6d';
+  cx.lineWidth = 1.5;
+  cx.setLineDash([3, 5]);
+  const sxe = ox + scale;
+  const sye = oy - b * scale;
+  cx.beginPath(); cx.moveTo(ox - scale, oy + b * scale); cx.lineTo(sxe, sye); cx.stroke();
+  cx.setLineDash([]);
+
+  // EVENT POINT at some ct
+  const evX = ox + 0.3 * scale;
+  const evY = oy - 0.6 * scale;
+  cx.fillStyle = '#b8ff57';
+  cx.beginPath(); cx.arc(evX, evY, 5, 0, Math.PI * 2); cx.fill();
+  cx.fillStyle = '#b8ff57';
+  cx.font = '10px "IBM Plex Mono"';
+  cx.fillText('event', evX + 8, evY - 4);
+
+  // Tick labels
+  cx.fillStyle = '#5a6a8a';
+  cx.font = '9px "IBM Plex Mono"';
+  cx.fillText('light', ox + scale * 0.72, oy - scale * 0.65);
+  cx.fillText('cone', ox + scale * 0.72, oy - scale * 0.55);
+}
+
+// ─── LIGHT CONE CAUSALITY ───────────────────────────────────────────────────
+function drawLightCone(b) {
+  const cv = document.getElementById('lightcone-canvas');
+  const cx = cv.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = cv.offsetWidth * dpr;
+  cv.height = 340 * dpr;
+  cx.scale(dpr, dpr);
+  const W = cv.offsetWidth, H = 340;
+  cx.clearRect(0, 0, W, H);
+
+  const ox = W / 2, oy = H / 2;
+  const R = Math.min(W, H) * 0.42;
+
+  // Background regions
+  // Timelike future (above, inside)
+  const grad = cx.createRadialGradient(ox, oy - R * 0.4, 0, ox, oy, R);
+  grad.addColorStop(0, 'rgba(0,229,255,0.08)');
+  grad.addColorStop(1, 'rgba(0,229,255,0)');
+
+  // FUTURE CONE
+  cx.fillStyle = 'rgba(0,229,255,0.07)';
+  cx.beginPath();
+  cx.moveTo(ox, oy);
+  cx.lineTo(ox - R, oy - R);
+  cx.lineTo(ox + R, oy - R);
+  cx.closePath();
+  cx.fill();
+
+  // PAST CONE
+  cx.fillStyle = 'rgba(255,77,109,0.07)';
+  cx.beginPath();
+  cx.moveTo(ox, oy);
+  cx.lineTo(ox - R, oy + R);
+  cx.lineTo(ox + R, oy + R);
+  cx.closePath();
+  cx.fill();
+
+  // SPACELIKE regions (left/right)
+  cx.fillStyle = 'rgba(90,106,138,0.05)';
+  cx.beginPath();
+  cx.moveTo(ox, oy); cx.lineTo(ox - R, oy - R); cx.lineTo(ox - R, oy + R); cx.closePath(); cx.fill();
+  cx.beginPath();
+  cx.moveTo(ox, oy); cx.lineTo(ox + R, oy - R); cx.lineTo(ox + R, oy + R); cx.closePath(); cx.fill();
+
+  // LIGHT CONE LINES
+  cx.strokeStyle = '#ffd700';
+  cx.lineWidth = 2;
+  cx.beginPath(); cx.moveTo(ox, oy); cx.lineTo(ox + R, oy - R); cx.stroke();
+  cx.beginPath(); cx.moveTo(ox, oy); cx.lineTo(ox - R, oy - R); cx.stroke();
+  cx.beginPath(); cx.moveTo(ox, oy); cx.lineTo(ox + R, oy + R); cx.stroke();
+  cx.beginPath(); cx.moveTo(ox, oy); cx.lineTo(ox - R, oy + R); cx.stroke();
+
+  // AXES
+  cx.strokeStyle = 'rgba(90,106,138,0.5)';
+  cx.lineWidth = 1;
+  cx.beginPath(); cx.moveTo(0, oy); cx.lineTo(W, oy); cx.stroke();
+  cx.beginPath(); cx.moveTo(ox, 0); cx.lineTo(ox, H); cx.stroke();
+
+  // MOVING OBJECT worldline
+  const angle2 = Math.atan(b);
+  cx.strokeStyle = '#b8ff57';
+  cx.lineWidth = 2.5;
+  cx.beginPath();
+  cx.moveTo(ox - Math.sin(angle2) * R * 0.8, oy + Math.cos(angle2) * R * 0.8);
+  cx.lineTo(ox + Math.sin(angle2) * R * 0.8, oy - Math.cos(angle2) * R * 0.8);
+  cx.stroke();
+
+  // LABELS
+  cx.font = '11px "IBM Plex Mono"';
+  cx.fillStyle = '#00e5ff';
+  cx.fillText('FUTURE', ox - 28, oy - R + 16);
+  cx.fillStyle = '#ff4d6d';
+  cx.fillText('PAST', ox - 18, oy + R - 8);
+  cx.fillStyle = '#5a6a8a';
+  cx.fillText('spacelike', ox - R + 4, oy - 8);
+  cx.fillText('spacelike', ox + R - 72, oy - 8);
+  cx.fillStyle = '#ffd700';
+  cx.fillText('lightspeed', ox + R - 75, oy - R + 16);
+
+  // Origin dot
+  cx.fillStyle = '#fff';
+  cx.beginPath(); cx.arc(ox, oy, 4, 0, Math.PI * 2); cx.fill();
+  cx.fillStyle = '#fff';
+  cx.font = '10px "IBM Plex Mono"';
+  cx.fillText('origin', ox + 8, oy - 8);
+
+  // Axis labels
+  cx.fillStyle = '#5a6a8a';
+  cx.font = '11px "IBM Plex Mono"';
+  cx.fillText('x →', W - 30, oy - 8);
+  cx.fillText('ct ↑', ox + 8, 18);
+}
+
+// ─── LORENTZ TRANSFORM GRID ──────────────────────────────────────────────────
+function drawLorentz(b, g) {
+  const cv = document.getElementById('lorentz-canvas');
+  const cx = cv.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = cv.offsetWidth * dpr;
+  cv.height = 280 * dpr;
+  cx.scale(dpr, dpr);
+  const W = cv.offsetWidth, H = 280;
+  cx.clearRect(0, 0, W, H);
+
+  const ox = W * 0.35, oy = H * 0.75;
+  const s = Math.min(W, H) * 0.55;
+  const N = 5;
+
+  // Draw S (rest) GRID — white
+  function drawGrid(ex_x, ex_ct, color, alpha) {
+    cx.strokeStyle = color;
+    cx.lineWidth = 0.8;
+    cx.globalAlpha = alpha;
+    for (let i = -N; i <= N; i++) {
+      const t = i / N;
+      // ct = const lines: x varies, ct = t*s
+      const ctY = oy - t * s;
+      cx.beginPath();
+      cx.moveTo(ox - s, ctY); cx.lineTo(ox + s, ctY); cx.stroke();
+      // x = const lines: ct varies, x = t*s
+      const xX = ox + t * s;
+      cx.beginPath();
+      cx.moveTo(xX, oy - s); cx.lineTo(xX, oy + s * 0.3); cx.stroke();
+    }
+    cx.globalAlpha = 1;
+  }
+
+  drawGrid(1, 0, '#ffffff', 0.12);
+
+  // S' grid — apply Lorentz shear
+  // x' axis: slope β in (x, ct) space → for each unit x', draw at angle
+  // ct' axis: slope 1/β inverse → draw sheared lines
+  cx.save();
+  // transform: x' lines have ct = β*x, x' axes rotated
+  // We shear the canvas: x' = γ(x - βct), ct' = γ(ct - βx)
+  // Visually: ct' axis tilts by angle θ = arctan(β), x' axis too
+
+  const theta = Math.atan(b);
+  cx.strokeStyle = '#00e5ff';
+  cx.lineWidth = 1;
+  cx.globalAlpha = 0.5;
+
+  for (let i = -N; i <= N; i++) {
+    const t = i / N;
+    // Lines of constant x': x' = const → draw as lines in (x,ct) space
+    // x' = γ(x - β ct) = const → x = β ct + const/γ
+    // So slope in (ct vertical, x horizontal): Δx/Δ(ct) = β
+    const x0 = ox + t * s;
+    cx.beginPath();
+    cx.moveTo(x0 - s * b, oy + s); cx.lineTo(x0 + s * b, oy - s); cx.stroke();
+
+    // Lines of constant ct': ct' = γ(ct - βx) = const → ct = βx + const/γ
+    // slope in (x horiz, ct vert): Δ(ct)/Δx = β
+    const ct0 = oy - t * s;
+    cx.beginPath();
+    cx.moveTo(ox - s, ct0 + b * s); cx.lineTo(ox + s, ct0 - b * s); cx.stroke();
+  }
+  cx.globalAlpha = 1;
+  cx.restore();
+
+  // Draw boosted axes (thick)
+  // ct' axis: x = 0 in S' → in S: x = β ct → slope Δx/Δ(ct) = β
+  cx.strokeStyle = '#ff7043';
+  cx.lineWidth = 2.5;
+  cx.beginPath();
+  cx.moveTo(ox, oy);
+  cx.lineTo(ox + s * b, oy - s);
+  cx.stroke();
+  cx.fillStyle = '#ff7043';
+  cx.font = '10px "IBM Plex Mono"';
+  cx.fillText("ct' axis", ox + s * b + 6, oy - s + 6);
+
+  // x' axis: ct = 0 in S' → ct = β x → slope Δ(ct)/Δx = β
+  cx.strokeStyle = '#b8ff57';
+  cx.lineWidth = 2.5;
+  cx.beginPath();
+  cx.moveTo(ox, oy);
+  cx.lineTo(ox + s, oy - b * s);
+  cx.stroke();
+  cx.fillStyle = '#b8ff57';
+  cx.fillText("x' axis", ox + s + 6, oy - b * s);
+
+  // Original axes
+  cx.strokeStyle = 'rgba(255,255,255,0.5)';
+  cx.lineWidth = 1.5;
+  cx.beginPath(); cx.moveTo(ox, oy); cx.lineTo(ox, oy - s); cx.stroke();
+  cx.beginPath(); cx.moveTo(ox, oy); cx.lineTo(ox + s, oy); cx.stroke();
+
+  cx.fillStyle = '#5a6a8a';
+  cx.font = '10px "IBM Plex Mono"';
+  cx.fillText('ct', ox + 4, oy - s + 4);
+  cx.fillText('x', ox + s + 4, oy + 4);
+
+  // Light cone line
+  cx.strokeStyle = '#ffd70066';
+  cx.lineWidth = 1.5;
+  cx.setLineDash([4, 4]);
+  cx.beginPath(); cx.moveTo(ox, oy); cx.lineTo(ox + s, oy - s); cx.stroke();
+  cx.setLineDash([]);
+  cx.fillStyle = '#ffd700';
+  cx.font = '9px "IBM Plex Mono"';
+  cx.fillText('c', ox + s + 4, oy - s + 4);
+
+  // Label
+  cx.fillStyle = '#5a6a8a';
+  cx.font = '10px "IBM Plex Mono"';
+  cx.fillText('β = ' + b.toFixed(4), 8, 16);
+  cx.fillText('θ = ' + (theta * 180 / Math.PI).toFixed(2) + '°', 8, 30);
+}
+
+// ─── TWIN PARADOX ────────────────────────────────────────────────────────────
+document.getElementById('twin-calc').addEventListener('click', calcTwin);
+document.getElementById('twin-v').addEventListener('input', calcTwin);
+document.getElementById('twin-T').addEventListener('input', calcTwin);
+
+function calcTwin() {
+  const v = parseFloat(document.getElementById('twin-v').value) || 0.8;
+  const T = parseFloat(document.getElementById('twin-T').value) || 20;
+  const b = Math.min(Math.max(v, 0.001), 0.9999);
+  const tau = T * Math.sqrt(1 - b * b);
+  const diff = T - tau;
+
+  document.getElementById('twin-earth-age').textContent = T.toFixed(2);
+  document.getElementById('twin-travel-age').textContent = tau.toFixed(2);
+  document.getElementById('twin-diff').textContent = diff.toFixed(2);
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+updateAll();
+calcTwin();
+
+// Redraw on resize
+window.addEventListener('resize', () => updateAll());
+</script>
+</body>
+</html>
